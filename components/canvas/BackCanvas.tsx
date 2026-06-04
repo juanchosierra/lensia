@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { LensiaFront } from "../LensiaFront";
+import { LensiaBack } from "../LensiaBack";
 import { BrandMark } from "../ui/Brand";
 import { ChromeWindow } from "./ChromeWindow";
 import { IOSDevice } from "./IOSDevice";
@@ -34,7 +34,7 @@ const brandName = (c: string): string =>
 
 function FrameLabel({ kicker, title, note }: { kicker: string; title: string; note: string }) {
   return (
-    <div style={{ marginBottom: 14, maxWidth: 420 }}>
+    <div style={{ marginBottom: 14, maxWidth: 460 }}>
       <div
         style={{
           fontSize: 11, fontWeight: 800, letterSpacing: ".14em",
@@ -63,7 +63,7 @@ function FrameLabel({ kicker, title, note }: { kicker: string; title: string; no
   );
 }
 
-export function Canvas() {
+export function BackCanvas() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
 
   const radii: CSSProperties =
@@ -94,28 +94,22 @@ export function Canvas() {
         ...wrapVars,
       }}
     >
-      {/* page header */}
-      <div style={{ padding: "40px 44px 26px", maxWidth: 1700, margin: "0 auto" }}>
+      <div style={{ padding: "36px 44px 24px", maxWidth: 1760, margin: "0 auto" }}>
         <div className="ls-row" style={{ gap: 13, flexWrap: "wrap" }}>
           <BrandMark size={40} color={t.brand} />
           <div className="ls-col ls-grow">
-            <div
-              style={{
-                fontSize: 30, fontWeight: 800, color: "#051533",
-                letterSpacing: "-.03em",
-              }}
-            >
-              {bn} · Front
+            <div style={{ fontSize: 30, fontWeight: 800, color: "#051533", letterSpacing: "-.03em" }}>
+              {bn} · Back
             </div>
             <div style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>
-              App de la óptica — Nueva Orden · Mis Órdenes · Seguimiento
+              Panel del laboratorio — Bandeja Kanban · Detalle · Avanzar estado
             </div>
           </div>
-          <Switch brand={t.brand} active="front" />
+          <Switch brand={t.brand} active="back" />
         </div>
         <div className="ls-row" style={{ marginTop: 16, gap: 12, flexWrap: "wrap" }}>
           <Link
-            href="/app"
+            href="/lab"
             style={{
               textDecoration: "none", padding: "8px 14px", borderRadius: 999,
               fontSize: 12.5, fontWeight: 700, color: t.brand,
@@ -123,10 +117,10 @@ export function Canvas() {
               letterSpacing: "-.01em",
             }}
           >
-            Abrir Front standalone →
+            Abrir Back standalone →
           </Link>
           <Link
-            href="/lab"
+            href="/app"
             style={{
               textDecoration: "none", padding: "8px 14px", borderRadius: 999,
               fontSize: 12.5, fontWeight: 700, color: "#475569",
@@ -134,7 +128,7 @@ export function Canvas() {
               letterSpacing: "-.01em",
             }}
           >
-            Abrir Back standalone →
+            Abrir Front standalone →
           </Link>
         </div>
 
@@ -142,15 +136,15 @@ export function Canvas() {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-            gap: 14, marginTop: 26,
+            gap: 14, marginTop: 24,
           }}
         >
           {(
             [
-              ["El encargo", "Front responsive (móvil + escritorio) con los 3 flujos clave. Pensado mostrador-primero: la óptica pide desde el celular, pero también sirve completo en computador."],
-              ["El diferenciador", "El Seguimiento: línea de tiempo vertical estilo paquete con el detalle que agrega el lab en cada paso (ETA, transportadora, guía). Reemplaza el WhatsApp/teléfono."],
-              ["El sistema", "Azul de marca #1166FF + navy #051533. Plus Jakarta para UI, JetBrains Mono para la fórmula (datos tabulares precisos). White-label: el color es del lab."],
-              ["Pruébalo", "Crea una orden y mira su tracking; repite un pedido; abre Lista de Precios (tus precios) y pide directo; en Estado de Cuenta simula 'Bloqueada' y mira cómo reacciona Nueva Orden."],
+              ["El tablero", "Una columna por etapa de producción. Cada tarjeta es un pedido entrante de una óptica. Arrastra una tarjeta a la siguiente columna para avanzarla."],
+              ["Avanzar = informar", "Al avanzar, el lab agrega lo que la óptica verá en su seguimiento: fecha estimada, transportadora y # de guía, o el motivo de una demora."],
+              ["Multi-tenant", "Pedidos de varias ópticas (clientes del lab), con su tier de precios. Filtra por óptica o por urgencia. White-label: el panel lleva la marca del lab."],
+              ["Pruébalo", "Arrastra tarjetas entre columnas; abre cualquiera para su ficha; en Catálogo edita un precio especial por óptica; en Cartera registra un pago y mira el aging actualizarse."],
             ] as Array<[string, string]>
           ).map(([h, b]) => (
             <div
@@ -171,47 +165,78 @@ export function Canvas() {
         </div>
       </div>
 
-      {/* frames */}
+      {/* desktop board */}
+      <div style={{ padding: "8px 44px 0", maxWidth: 1760, margin: "0 auto" }}>
+        <FrameLabel
+          kicker="Escritorio"
+          title="Bandeja de pedidos — tablero Kanban"
+          note="El lab opera en computador. Arrastra entre columnas; al soltar se pide la info que verá la óptica."
+        />
+        <div style={wrapVars}>
+          <ChromeWindow
+            width={1672}
+            height={820}
+            url={`lab.${bn.toLowerCase().replace(/[^a-z]/g, "")}.app/bandeja`}
+            title={`${bn} Lab — Bandeja`}
+          >
+            <div style={{ height: "100%", ...wrapVars }}>
+              <LensiaBack mode="desktop" brandName={bn} />
+            </div>
+          </ChromeWindow>
+        </div>
+      </div>
+
+      {/* mobile consult + explanation card */}
       <div
         style={{
-          display: "flex", flexWrap: "wrap", gap: 40,
-          justifyContent: "center", alignItems: "flex-start",
-          padding: "14px 36px 0",
+          padding: "40px 44px 0",
+          maxWidth: 1760, margin: "0 auto",
+          display: "flex", gap: 48, flexWrap: "wrap",
+          alignItems: "flex-start",
         }}
       >
         <div>
           <FrameLabel
-            kicker="Escritorio"
-            title="Responsive — el lab opera en computador"
-            note="Sidebar de navegación, tracking a dos columnas (línea de tiempo + ficha de la orden)."
-          />
-          <ChromeWindow
-            width={1108}
-            height={812}
-            url={`claridad.${bn.toLowerCase().replace(/[^a-z]/g, "")}.app/ordenes`}
-            title={`${bn} — Mis Órdenes`}
-          >
-            <div style={{ height: "100%", ...wrapVars }}>
-              <LensiaFront mode="desktop" brandName={bn} />
-            </div>
-          </ChromeWindow>
-        </div>
-
-        <div>
-          <FrameLabel
             kicker="Móvil"
-            title="Mobile-first — desde el mostrador"
-            note="Nueva Orden a pantalla completa, fórmula Rx por ojo, navegación inferior."
+            title="Consulta rápida — responsive"
+            note="Para revisar y avanzar pedidos desde el celular. Mismo tablero apilado; toca una tarjeta para la ficha."
           />
           <div style={wrapVars}>
             <IOSDevice width={384} height={812}>
-              <LensiaFront mode="mobile" brandName={bn} />
+              <LensiaBack mode="mobile" brandName={bn} />
             </IOSDevice>
+          </div>
+        </div>
+        <div
+          style={{
+            flex: 1, minWidth: 280, maxWidth: 520,
+            background: "#fff", border: "1px solid #e2e8f2",
+            borderRadius: 16, padding: 22,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12.5, fontWeight: 800,
+              color: "#1166FF", marginBottom: 10,
+            }}
+          >
+            CÓMO ENCAJA CON EL FRONT
+          </div>
+          <div
+            style={{
+              fontSize: 14, color: "#334155",
+              lineHeight: 1.6, fontWeight: 500,
+            }}
+          >
+            Lo que el laboratorio hace aquí (avanzar estado, agregar guía o fecha) aparece{" "}
+            <b>en tiempo real</b> en el seguimiento de la óptica en el Front. Es el mismo ciclo de 8 estados,
+            visto desde los dos lados.
+            <br /><br />
+            Usa el selector <b>Front · óptica / Back · laboratorio</b> arriba para alternar entre los dos productos.
           </div>
         </div>
       </div>
 
-      {/* Tweaks */}
       <TweaksPanel title="Tweaks">
         <TweakSection label="White-label (marca del laboratorio)" />
         <TweakColor
@@ -226,8 +251,7 @@ export function Canvas() {
             padding: "2px 2px 8px", lineHeight: 1.4,
           }}
         >
-          Cada lab ve su propia marca. Activa:{" "}
-          <b style={{ color: t.brand }}>{bn}</b>.
+          Marca activa: <b style={{ color: t.brand }}>{bn}</b>.
         </div>
         <TweakSection label="Tipografía" />
         <TweakRadio
