@@ -11,6 +11,12 @@ import {
 } from "@/lib/data";
 import { calcPrice } from "@/lib/pricing";
 import type { AccountStatus } from "@/lib/commercial-data";
+import {
+  countByLevel, suggestsTransposition, transposeRx, validateRx,
+} from "@/lib/rx-validation";
+import { RxValidationPanel } from "./RxValidationPanel";
+import { RxConfirmModal } from "./RxConfirmModal";
+import { ConsentBanner } from "../Consent";
 
 type Mode = "mobile" | "desktop";
 
@@ -176,9 +182,14 @@ type Props = {
   seed?: Partial<NuevaOrdenForm> | null;
   acctStatus: AccountStatus;
   onGoCuenta?: () => void;
+  branchName?: string;
+  branchAddress?: string;
 };
 
-export function NuevaOrden({ mode, onCreate, seed, acctStatus, onGoCuenta }: Props) {
+export function NuevaOrden({
+  mode, onCreate, seed, acctStatus, onGoCuenta,
+  branchName, branchAddress,
+}: Props) {
   const [form, setForm] = useState<NuevaOrdenForm>(() =>
     seed ? { ...blankForm(), ...seed } : blankForm(),
   );
@@ -195,17 +206,35 @@ export function NuevaOrden({ mode, onCreate, seed, acctStatus, onGoCuenta }: Pro
 
   const price = calcPrice(form);
   const blocked = acctStatus === "blocked";
-  const valid =
-    !blocked &&
+
+  const issues = validateRx({
+    tipo: form.tipo, mat: form.mat, rx: form.rx, paciente: form.paciente,
+  });
+  const counts = countByLevel(issues);
+  const hasErrors = counts.error > 0;
+  const hasFormBasics =
     form.paciente.trim().length > 1 &&
     form.rx.od.esf !== "" &&
     form.rx.oi.esf !== "";
+  const valid = !blocked && hasFormBasics && !hasErrors;
+  const suggestTrans = suggestsTransposition(form.rx);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const pad = mode === "desktop" ? 28 : 18;
   const wrap = mode === "desktop" ? { maxWidth: 760, margin: "0 auto" as const } : {};
 
-  const submit = () => {
+  const tryOpenConfirm = () => {
     if (!valid) return;
+    setConfirmOpen(true);
+  };
+
+  const finalCreate = () => {
     onCreate({ ...form, precio: price });
+    setConfirmOpen(false);
+  };
+
+  const applyTransposition = () => {
+    setForm((f) => ({ ...f, rx: transposeRx(f.rx) }));
   };
 
   return (
@@ -215,6 +244,22 @@ export function NuevaOrden({ mode, onCreate, seed, acctStatus, onGoCuenta }: Pro
           <p className="ls-sub" style={{ marginBottom: 4 }}>
             Completa la fórmula. Los campos con <span style={{ color: "var(--brand)" }}>★</span> son obligatorios.
           </p>
+          {branchName && branchAddress && (
+            <div
+              className="ls-row"
+              style={{
+                gap: 8, marginTop: 10,
+                padding: "8px 12px", borderRadius: 10,
+                background: "var(--brand-50)", color: "var(--brand-700)",
+                fontSize: 12, fontWeight: 600,
+              }}
+            >
+              <Icon name="pin" size={14} />
+              <span>
+                Despacho a <b>{branchName}</b> — {branchAddress}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -256,6 +301,7 @@ export function NuevaOrden({ mode, onCreate, seed, acctStatus, onGoCuenta }: Pro
           {/* 1 · Paciente */}
           <section className="ls-col" style={{ gap: 14 }}>
             <SectionHead n="1" title="Paciente" sub="Para identificar el trabajo." />
+            <ConsentBanner />
             <div style={{ display: "grid", gridTemplateColumns: mode === "desktop" ? "2fr 1fr" : "1fr", gap: 14 }}>
               <Field label="Nombre del paciente ★">
                 <input
@@ -326,6 +372,40 @@ export function NuevaOrden({ mode, onCreate, seed, acctStatus, onGoCuenta }: Pro
               <span style={{ fontSize: 11.5, color: "var(--faint)", fontWeight: 500 }}>
                 ADD y ALT aplican solo en bifocal, progresivo y ocupacional.
               </span>
+            )}
+            {suggestTrans && (
+              <div
+                className="ls-card"
+                style={{
+                  padding: 12, background: "var(--brand-50)",
+                  borderColor: "var(--brand-100)",
+                }}
+              >
+                <div className="ls-row" style={{ gap: 10 }}>
+                  <span style={{ color: "var(--brand)" }}>
+                    <Icon name="repeat" size={18} />
+                  </span>
+                  <div className="ls-col" style={{ gap: 2 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--brand-700)" }}>
+                      ¿Fórmula en cilindro positivo?
+                    </span>
+                    <span style={{ fontSize: 12, color: "var(--brand-700)" }}>
+                      El lab trabaja en cilindro negativo. Te puedo convertirla.
+                    </span>
+                  </div>
+                  <span className="ls-grow" />
+                  <button
+                    className="ls-btn ls-btn-soft ls-btn-sm"
+                    onClick={applyTransposition}
+                    type="button"
+                  >
+                    Transponer (+ → −)
+                  </button>
+                </div>
+              </div>
+            )}
+            {(hasFormBasics || issues.length > 0) && (
+              <RxValidationPanel issues={issues} />
             )}
           </section>
 
@@ -502,7 +582,7 @@ export function NuevaOrden({ mode, onCreate, seed, acctStatus, onGoCuenta }: Pro
           borderTop: "1px solid var(--line)",
         }}
       >
-        <div style={wrap} className="ls-row">
+        <div style={wrap} className="ls-row" >
           <div className="ls-col" style={{ gap: 1 }}>
             <span style={{ fontSize: 11, color: "var(--faint)", fontWeight: 700 }}>
               TOTAL ESTIMADO
@@ -514,18 +594,52 @@ export function NuevaOrden({ mode, onCreate, seed, acctStatus, onGoCuenta }: Pro
               {COP(price)}
             </span>
           </div>
+          {hasErrors && (
+            <span
+              className="ls-pill urgent"
+              style={{ marginLeft: 12, height: 26 }}
+            >
+              <Icon name="alert" size={12} />
+              {counts.error} error{counts.error === 1 ? "" : "es"} por corregir
+            </span>
+          )}
+          {!hasErrors && counts.warn > 0 && (
+            <span
+              className="ls-pill"
+              style={{
+                marginLeft: 12, height: 26,
+                background: "var(--warn-bg)", color: "var(--warn)",
+              }}
+            >
+              <Icon name="alert" size={12} />
+              {counts.warn} aviso{counts.warn === 1 ? "" : "s"}
+            </span>
+          )}
           <span className="ls-grow" />
           <button
             className="ls-btn ls-btn-primary"
             disabled={!valid}
-            onClick={submit}
+            onClick={tryOpenConfirm}
             style={{ paddingInline: 24 }}
             type="button"
           >
-            <Icon name="check" size={18} sw={2.4} />Crear orden
+            <Icon name="check" size={18} sw={2.4} />Revisar y enviar
           </button>
         </div>
       </div>
+      {confirmOpen && (
+        <RxConfirmModal
+          rx={form.rx}
+          paciente={form.paciente}
+          tipo={form.tipo}
+          mat={form.mat}
+          trats={form.trats}
+          precio={price}
+          issues={issues}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={finalCreate}
+        />
+      )}
     </div>
   );
 }

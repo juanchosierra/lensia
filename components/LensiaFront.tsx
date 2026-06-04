@@ -9,14 +9,25 @@ import { NuevaOrden, blankForm, type NuevaOrdenForm } from "./screens/NuevaOrden
 import { Tracking } from "./screens/Tracking";
 import { ListaPrecios } from "./screens/ListaPrecios";
 import { EstadoCuenta } from "./screens/EstadoCuenta";
+import {
+  GarantiaDetail, GarantiaList, NuevaGarantiaForm,
+} from "./screens/Garantia";
+import { ConsentBanner, PrivacyFooter } from "./Consent";
 import { ORDERS, type Order } from "@/lib/data";
 import {
   ACCOUNTS, acctSummary, type AccountStatus, type Combo,
 } from "@/lib/commercial-data";
+import {
+  MOCK_GARANTIAS, type Garantia, type MotivoGarantia,
+} from "@/lib/garantia";
+import { BRANCHES, type Branch } from "@/lib/branches";
+import { BranchSelector } from "./BranchSelector";
+import { RoleSwitcher } from "./RoleSwitcher";
+import { can, type ShopRole } from "@/lib/roles";
 
 type Mode = "mobile" | "desktop";
 
-type View = "orders" | "new" | "tracking" | "precios" | "cuenta";
+type View = "orders" | "new" | "tracking" | "precios" | "cuenta" | "garantias" | "garantia-detail";
 
 const SHOP = { name: "Óptica Claridad", user: "Sara Restrepo", initials: "SR" };
 
@@ -35,6 +46,13 @@ export function LensiaFront({ mode, brandName }: Props) {
   const [acct, setAcct] = useState<AccountStatus>(
     () => acctSummary(ACCOUNTS.claridad).status,
   );
+  const [garantias, setGarantias] = useState<Garantia[]>(() =>
+    MOCK_GARANTIAS.filter((g) => g.optica === "claridad").map((g) => ({ ...g })),
+  );
+  const [selGarantia, setSelGarantia] = useState<Garantia | null>(null);
+  const [garantiaFor, setGarantiaFor] = useState<Order | null>(null);
+  const [branch, setBranch] = useState<Branch>(() => BRANCHES.claridad[0]);
+  const [shopRole, setShopRole] = useState<ShopRole>("duena");
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -85,6 +103,32 @@ export function LensiaFront({ mode, brandName }: Props) {
     showToast("Pedido clonado — ajusta la fórmula y crea la orden");
   };
 
+  const openGarantia = (g: Garantia) => {
+    setSelGarantia(g);
+    setView("garantia-detail");
+  };
+
+  const startGarantia = (o: Order) => setGarantiaFor(o);
+
+  const submitGarantia = (input: {
+    orderId: string; paciente: string;
+    motivo: MotivoGarantia; descripcion: string; foto: boolean;
+  }) => {
+    const id = "G-" + (411 + garantias.length + 1);
+    const g: Garantia = {
+      id, orderId: input.orderId, paciente: input.paciente,
+      optica: "claridad", motivo: input.motivo,
+      descripcion: input.descripcion, foto: input.foto,
+      fecha: "Hoy", estado: "solicitada", estadoN: 1,
+      hist: [{ n: 1, ts: "Ahora · recién reportada" }],
+    };
+    setGarantias((list) => [g, ...list]);
+    setGarantiaFor(null);
+    setSelGarantia(g);
+    setView("garantia-detail");
+    showToast(`Garantía ${id} enviada — el lab te responde pronto`);
+  };
+
   const screen = (() => {
     if (view === "new") {
       return (
@@ -95,6 +139,8 @@ export function LensiaFront({ mode, brandName }: Props) {
           onCreate={createOrder}
           acctStatus={acct}
           onGoCuenta={() => setView("cuenta")}
+          branchName={branch.name}
+          branchAddress={`${branch.direccion}, ${branch.ciudad}`}
         />
       );
     }
@@ -106,6 +152,7 @@ export function LensiaFront({ mode, brandName }: Props) {
           mode={mode}
           onBack={() => setView("orders")}
           onRepeat={repeat}
+          onGarantia={startGarantia}
         />
       );
     }
@@ -125,6 +172,25 @@ export function LensiaFront({ mode, brandName }: Props) {
           status={acct}
           setStatus={setAcct}
           onToast={showToast}
+        />
+      );
+    }
+    if (view === "garantias") {
+      return (
+        <GarantiaList
+          garantias={garantias}
+          mode={mode}
+          onOpen={openGarantia}
+        />
+      );
+    }
+    if (view === "garantia-detail" && selGarantia) {
+      const cur = garantias.find((g) => g.id === selGarantia.id) || selGarantia;
+      return (
+        <GarantiaDetail
+          g={cur}
+          mode={mode}
+          onBack={() => setView("garantias")}
         />
       );
     }
@@ -158,7 +224,7 @@ export function LensiaFront({ mode, brandName }: Props) {
 
   // MOBILE
   if (mode === "mobile") {
-    const fullScreen = view === "new" || view === "tracking";
+    const fullScreen = view === "new" || view === "tracking" || view === "garantia-detail";
     return (
       <div
         className="ls-app ls-col"
@@ -167,13 +233,34 @@ export function LensiaFront({ mode, brandName }: Props) {
       >
         {!fullScreen && (
           <header
-            className="ls-row"
-            style={{ padding: "14px 16px 10px", gap: 8, flexShrink: 0, background: "var(--bg)" }}
+            className="ls-col"
+            style={{ padding: "14px 16px 8px", gap: 8, flexShrink: 0, background: "var(--bg)" }}
           >
-            <Brand size={26} name={brandName} />
-            <span className="ls-grow" />
-            <div onClick={(e) => e.stopPropagation()}>{bell}</div>
-            <div className="ls-avatar">{SHOP.initials}</div>
+            <div className="ls-row" style={{ gap: 8 }}>
+              <Brand size={26} name={brandName} />
+              <span className="ls-grow" />
+              <div onClick={(e) => e.stopPropagation()}>{bell}</div>
+              <div className="ls-avatar">{SHOP.initials}</div>
+            </div>
+            <div
+              className="ls-row"
+              style={{ gap: 8, flexWrap: "wrap" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <BranchSelector
+                opticaId="claridad"
+                selected={branch.id}
+                onSelect={setBranch}
+                compact
+              />
+              <span className="ls-grow" />
+              <RoleSwitcher
+                side="shop"
+                role={shopRole}
+                setRole={(r) => setShopRole(r as ShopRole)}
+                compact
+              />
+            </div>
           </header>
         )}
         {view === "new" && (
@@ -201,6 +288,14 @@ export function LensiaFront({ mode, brandName }: Props) {
           {notiOpen && (
             <Notifications orders={orders} onOpen={openOrder} mode="mobile" />
           )}
+          {garantiaFor && (
+            <NuevaGarantiaForm
+              orderId={garantiaFor.id}
+              paciente={garantiaFor.paciente}
+              onClose={() => setGarantiaFor(null)}
+              onSubmit={submitGarantia}
+            />
+          )}
         </div>
 
         {!fullScreen && (
@@ -223,30 +318,52 @@ export function LensiaFront({ mode, brandName }: Props) {
           </div>
         )}
         {!fullScreen && (
-          <nav className="ls-botnav" style={{ flexShrink: 0, borderTop: "none" }}>
+          <nav
+            className="ls-botnav"
+            style={{
+              flexShrink: 0,
+              borderTop: "none",
+              padding: "8px 8px calc(22px + env(safe-area-inset-bottom, 0px))",
+            }}
+          >
             <button
               className={view === "orders" ? "on" : ""}
               onClick={() => setView("orders")}
               type="button"
+              style={{ fontSize: 10 }}
             >
-              <Icon name="list" size={21} />Órdenes
+              <Icon name="list" size={20} />Órdenes
             </button>
-            <button onClick={() => goNew()} type="button">
-              <Icon name="plus" size={21} />Nueva
+            <button
+              onClick={() => goNew()}
+              type="button"
+              style={{ fontSize: 10 }}
+            >
+              <Icon name="plus" size={20} />Nueva
             </button>
             <button
               className={view === "precios" ? "on" : ""}
               onClick={() => setView("precios")}
               type="button"
+              style={{ fontSize: 10 }}
             >
-              <Icon name="tag" size={21} />Precios
+              <Icon name="tag" size={20} />Precios
             </button>
             <button
               className={view === "cuenta" ? "on" : ""}
               onClick={() => setView("cuenta")}
               type="button"
+              style={{ fontSize: 10 }}
             >
-              <Icon name="doc" size={21} />Cuenta
+              <Icon name="doc" size={20} />Cuenta
+            </button>
+            <button
+              className={view === "garantias" ? "on" : ""}
+              onClick={() => setView("garantias")}
+              type="button"
+              style={{ fontSize: 10 }}
+            >
+              <Icon name="shield" size={20} />Garantías
             </button>
           </nav>
         )}
@@ -269,8 +386,12 @@ export function LensiaFront({ mode, brandName }: Props) {
     tracking: "Seguimiento",
     precios: "Lista de Precios",
     cuenta: "Estado de Cuenta",
+    garantias: "Garantías",
+    "garantia-detail": "Garantía",
   };
   const title = titles[view] || "Lensia";
+  const activeNavDesktop = (view === "garantia-detail" ? "garantias" : activeNav) as
+    | "orders" | "new" | "precios" | "cuenta" | "garantias";
 
   return (
     <div
@@ -311,13 +432,13 @@ export function LensiaFront({ mode, brandName }: Props) {
           <span className="ls-eyebrow" style={{ padding: "14px 13px 4px" }}>Comercial</span>
           {(
             [
-              { key: "precios", label: "Lista de Precios", icon: "tag" as const },
-              { key: "cuenta", label: "Estado de Cuenta", icon: "doc" as const },
+              { key: "precios", label: "Lista de Precios", icon: "tag" as const, perm: "shop.precios.view" as const },
+              { key: "cuenta", label: "Estado de Cuenta", icon: "doc" as const, perm: "shop.cuenta.view" as const },
             ]
-          ).map((n) => (
+          ).filter((n) => can(shopRole, n.perm)).map((n) => (
             <button
               key={n.key}
-              className={activeNav === n.key ? "on" : ""}
+              className={activeNavDesktop === n.key ? "on" : ""}
               onClick={() => setView(n.key as View)}
               type="button"
             >
@@ -333,6 +454,31 @@ export function LensiaFront({ mode, brandName }: Props) {
               )}
             </button>
           ))}
+          <span className="ls-eyebrow" style={{ padding: "14px 13px 4px" }}>Post-venta</span>
+          <button
+            className={activeNavDesktop === "garantias" ? "on" : ""}
+            onClick={() => setView("garantias")}
+            type="button"
+          >
+            <Icon name="shield" size={20} />Garantías
+            {garantias.some((g) => g.estado !== "rechazada" && g.estado !== "lista") && (
+              <>
+                <span className="ls-grow" />
+                <span
+                  className="ct"
+                  style={{
+                    fontSize: 11, fontWeight: 800,
+                    color: "var(--brand-700)", background: "var(--brand-50)",
+                    borderRadius: 999, padding: "1px 8px",
+                  }}
+                >
+                  {garantias.filter(
+                    (g) => g.estado !== "rechazada" && g.estado !== "lista",
+                  ).length}
+                </span>
+              </>
+            )}
+          </button>
         </div>
         <span className="ls-grow" />
         <div className="ls-divider" style={{ margin: "0 14px" }} />
@@ -377,7 +523,23 @@ export function LensiaFront({ mode, brandName }: Props) {
         >
           <span className="ls-h2">{title}</span>
           <span className="ls-grow" />
-          {view === "orders" && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <BranchSelector
+              opticaId="claridad"
+              selected={branch.id}
+              onSelect={setBranch}
+              compact
+            />
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <RoleSwitcher
+              side="shop"
+              role={shopRole}
+              setRole={(r) => setShopRole(r as ShopRole)}
+              compact
+            />
+          </div>
+          {view === "orders" && can(shopRole, "shop.orders.create") && (
             <button
               className="ls-btn ls-btn-primary ls-btn-sm"
               onClick={() => goNew()}
@@ -398,6 +560,14 @@ export function LensiaFront({ mode, brandName }: Props) {
           style={{ overflow: "hidden", position: "relative", background: "var(--bg)" }}
         >
           {screen}
+          {garantiaFor && (
+            <NuevaGarantiaForm
+              orderId={garantiaFor.id}
+              paciente={garantiaFor.paciente}
+              onClose={() => setGarantiaFor(null)}
+              onSubmit={submitGarantia}
+            />
+          )}
           {toast && (
             <div className="ls-toast">
               <Icon name="check" size={18} sw={2.4} style={{ color: "#7ef0a8" }} />

@@ -13,10 +13,11 @@ type Props = {
   o: Order;
   onBack: () => void;
   onRepeat: (o: Order) => void;
+  onGarantia?: (o: Order) => void;
   mode: Mode;
 };
 
-export function Tracking({ o, onBack, onRepeat, mode }: Props) {
+export function Tracking({ o, onBack, onRepeat, onGarantia, mode }: Props) {
   const pad = mode === "desktop" ? 28 : 18;
   const m = MATERIALS.find((x) => x.idx === o.mat);
 
@@ -56,11 +57,22 @@ export function Tracking({ o, onBack, onRepeat, mode }: Props) {
     </div>
   );
 
+  const isDelivered = o.estadoN >= 8;
   const Actions = (
-    <div className="ls-row" style={{ gap: 10 }}>
+    <div className="ls-row" style={{ gap: 10, flexWrap: "wrap" }}>
       <button className="ls-btn ls-btn-soft ls-grow" onClick={() => onRepeat(o)}>
         <Icon name="repeat" size={17} />Repetir pedido
       </button>
+      {isDelivered && onGarantia && (
+        <button
+          className="ls-btn ls-btn-ghost ls-grow"
+          onClick={() => onGarantia(o)}
+          type="button"
+          style={{ color: "var(--warn)" }}
+        >
+          <Icon name="shield" size={16} />Reportar problema
+        </button>
+      )}
       <button className="ls-btn ls-btn-ghost ls-grow">
         <Icon name="phone" size={16} />Contactar lab
       </button>

@@ -14,8 +14,8 @@ type Props = {
   order: Order;
   mode: Mode;
   onClose: () => void;
-  onAdvance: (order: Order, toN: number) => void;
-  onException: (order: Order) => void;
+  onAdvance?: (order: Order, toN: number) => void;
+  onException?: (order: Order) => void;
 };
 
 export function Drawer({ order, mode, onClose, onAdvance, onException }: Props) {
@@ -96,7 +96,7 @@ export function Drawer({ order, mode, onClose, onAdvance, onException }: Props) 
         </div>
 
         <div className="drawer-foot">
-          {!order.exception && order.estadoN < 8 && (
+          {!order.exception && order.estadoN < 8 && onException && (
             <button
               className="ls-btn ls-btn-ghost ls-btn-sm"
               onClick={() => onException(order)}
@@ -108,14 +108,23 @@ export function Drawer({ order, mode, onClose, onAdvance, onException }: Props) 
           )}
           <span className="ls-grow" />
           {next ? (
-            <button
-              className="ls-btn ls-btn-primary"
-              onClick={() => onAdvance(order, order.estadoN + 1)}
-              type="button"
-            >
-              Avanzar a {next.label}
-              <Icon name="chevron" size={17} sw={2.3} />
-            </button>
+            onAdvance ? (
+              <button
+                className="ls-btn ls-btn-primary"
+                onClick={() => onAdvance(order, order.estadoN + 1)}
+                type="button"
+              >
+                Avanzar a {next.label}
+                <Icon name="chevron" size={17} sw={2.3} />
+              </button>
+            ) : (
+              <span
+                className="ls-sub"
+                style={{ fontSize: 12, fontWeight: 600, color: "var(--faint)" }}
+              >
+                Sin permiso para avanzar
+              </span>
+            )
           ) : (
             <span
               className="ls-badge is-done"

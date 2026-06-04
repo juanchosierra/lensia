@@ -14,14 +14,17 @@ type Props = {
   onDragStart: (e: DragEvent<HTMLDivElement>, o: Order) => void;
   onDragEnd: () => void;
   dragging: boolean;
+  draggable?: boolean;
 };
 
-export function KbCard({ o, mode, onOpen, onDragStart, onDragEnd, dragging }: Props) {
+export function KbCard({
+  o, mode, onOpen, onDragStart, onDragEnd, dragging, draggable,
+}: Props) {
   const op = opticaById(o.optica);
   return (
     <div
       className={"kb-card" + (o.exception ? " alert" : "") + (dragging ? " dragging" : "")}
-      draggable={mode === "desktop"}
+      draggable={mode === "desktop" && (draggable ?? true)}
       onDragStart={(e) => onDragStart(e, o)}
       onDragEnd={onDragEnd}
       onClick={() => onOpen(o)}
@@ -30,6 +33,19 @@ export function KbCard({ o, mode, onOpen, onDragStart, onDragEnd, dragging }: Pr
         <span className="ls-mono" style={{ fontSize: 11, fontWeight: 700, color: "var(--brand)" }}>
           #{o.id}
         </span>
+        {/-R$/.test(o.id) && (
+          <span
+            className="ls-pill"
+            style={{
+              height: 20, padding: "0 7px", fontSize: 10,
+              background: "color-mix(in srgb, var(--brand) 12%, #fff)",
+              color: "var(--brand-700)", fontWeight: 800,
+              letterSpacing: ".04em", textTransform: "uppercase",
+            }}
+          >
+            <Icon name="repeat" size={10} sw={2.4} />Reproceso
+          </span>
+        )}
         {o.prioridad === "Urgente" && (
           <span
             className="ls-pill urgent"
