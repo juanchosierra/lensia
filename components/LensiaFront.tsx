@@ -204,7 +204,26 @@ export function LensiaFront({ mode, brandName }: Props) {
         </div>
 
         {!fullScreen && (
-          <nav className="ls-botnav" style={{ flexShrink: 0 }}>
+          <div
+            style={{
+              flexShrink: 0,
+              padding: "8px 16px 6px",
+              fontSize: 10,
+              color: "var(--faint)",
+              fontWeight: 600,
+              textAlign: "center",
+              letterSpacing: "-.01em",
+              background: "rgba(255,255,255,.92)",
+              backdropFilter: "blur(12px)",
+              borderTop: "1px solid var(--line)",
+            }}
+          >
+            Hecho con <span style={{ color: "#e11d48" }}>❤</span> por{" "}
+            <b style={{ color: "var(--muted)", fontWeight: 800 }}>Cuantium-Wibi ™</b>
+          </div>
+        )}
+        {!fullScreen && (
+          <nav className="ls-botnav" style={{ flexShrink: 0, borderTop: "none" }}>
             <button
               className={view === "orders" ? "on" : ""}
               onClick={() => setView("orders")}
@@ -317,7 +336,7 @@ export function LensiaFront({ mode, brandName }: Props) {
         </div>
         <span className="ls-grow" />
         <div className="ls-divider" style={{ margin: "0 14px" }} />
-        <div className="ls-row" style={{ gap: 11, padding: "14px 16px" }}>
+        <div className="ls-row" style={{ gap: 11, padding: "14px 16px 10px" }}>
           <div className="ls-avatar" style={{ width: 38, height: 38 }}>{SHOP.initials}</div>
           <div className="ls-col" style={{ gap: 1, minWidth: 0 }}>
             <span
@@ -330,6 +349,19 @@ export function LensiaFront({ mode, brandName }: Props) {
             </span>
             <span style={{ fontSize: 12, color: "var(--muted)" }}>{SHOP.user}</span>
           </div>
+        </div>
+        <div
+          style={{
+            padding: "0 16px 14px",
+            fontSize: 10.5,
+            color: "var(--faint)",
+            fontWeight: 600,
+            textAlign: "center",
+            letterSpacing: "-.01em",
+          }}
+        >
+          Hecho con <span style={{ color: "#e11d48" }}>❤</span> por{" "}
+          <b style={{ color: "var(--muted)", fontWeight: 800 }}>Cuantium-Wibi ™</b>
         </div>
       </aside>
 

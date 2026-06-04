@@ -243,6 +243,22 @@ export function Canvas() {
           onChange={(v) => setTweak("corners", v as TweakState["corners"])}
         />
       </TweaksPanel>
+
+      {/* credits */}
+      <div
+        style={{
+          textAlign: "center",
+          marginTop: 56,
+          padding: "0 36px",
+          fontSize: 13,
+          color: "#94a3b8",
+          fontWeight: 500,
+          letterSpacing: "-.01em",
+        }}
+      >
+        Hecho con <span style={{ color: "#e11d48" }}>❤</span> por{" "}
+        <b style={{ color: "#475569", fontWeight: 800 }}>Cuantium-Wibi ™</b>
+      </div>
     </div>
   );
 }
