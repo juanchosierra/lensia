@@ -136,17 +136,6 @@ export function Canvas() {
           >
             Abrir Back standalone →
           </Link>
-          <Link
-            href="/super"
-            style={{
-              textDecoration: "none", padding: "8px 14px", borderRadius: 999,
-              fontSize: 12.5, fontWeight: 700, color: "#051533",
-              background: "#fff", border: "1px solid #e2e8f2",
-              letterSpacing: "-.01em",
-            }}
-          >
-            Superadmin (Cuantium-Wibi) →
-          </Link>
         </div>
 
         <div
